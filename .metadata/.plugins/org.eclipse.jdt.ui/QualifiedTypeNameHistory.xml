@@ -24,4 +24,6 @@
     <fullyQualifiedTypeName name="java.util.BitSet"/>
     <fullyQualifiedTypeName name="java.util.concurrent.locks.ReentrantLock"/>
     <fullyQualifiedTypeName name="java.nio.ByteBuffer"/>
+    <fullyQualifiedTypeName name="java.util.logging.Level"/>
+    <fullyQualifiedTypeName name="java.nio.BufferUnderflowException"/>
 </qualifiedTypeNameHistroy>

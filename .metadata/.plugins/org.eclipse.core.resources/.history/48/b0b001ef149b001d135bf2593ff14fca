@@ -44,7 +44,7 @@ public class ClientIdUpperCaseUDPBurst {
             this.dc = DatagramChannel.open();
             dc.bind(null);
             this.upperCaseLines = new String[nbLines];
-            this.answersLog = null; // TODO
+            this.answersLog = new AnswersLog(nbLines);
         }
 
         private void senderThreadRun() {
@@ -53,28 +53,26 @@ public class ClientIdUpperCaseUDPBurst {
         		while(answersLog.missingAnswers()) {
         			var lineNumber = 0;
         			for(var line : lines) {
-        				if(answersLog.getAnswer(lineNumber)) {
+        				if(!answersLog.getAnswer(lineNumber)) {
         					buffer.putLong(lineNumber);
         					buffer.put(UTF8.encode(line));
         					buffer.flip();
         					dc.send(buffer, serverAddress);
         					buffer.clear();
         				}
+        				lineNumber++;
         			}
-        			lineNumber++;
         			var start = System.currentTimeMillis(); // phase d'attente
-					var remain = timeout - (System.currentTimeMillis() - start);
-					while(remain > 0) {// tant qu'il reste du temps on stop le programme
-						remain = timeout - (System.currentTimeMillis() - start);
+					while(timeout  > (System.currentTimeMillis() - start)) {// tant qu'il reste du temps on stop le programme
 					}
         		}
 
     		}catch(AsynchronousCloseException e) {
-    			logger.info("AsynchronousException");
+    			logger.info("AsynchronousException of SenderThreadRun");
     		}catch(IOException e) {
-    			logger.severe("IOException");
+    			logger.severe("IOException of SenderThreadRun");
     		} finally {
-    			logger.info("end");
+    			logger.info("End of SenderThreadRun");
     		}
 			// TODO : body of the sender thread
 
@@ -83,30 +81,35 @@ public class ClientIdUpperCaseUDPBurst {
         public void launch() throws IOException {
             Thread senderThread = Thread.ofPlatform().start(this::senderThreadRun);
             var buffer = ByteBuffer.allocate(BUFFER_SIZE);
-				// TODO : body of the receiver thread
-				try {
-					while(answersLog.missingAnswers()) {
-						dc.receive(buffer);
-						if(buffer.remaining() < 8) {
-							logger.info("package corrupted");
-							continue;
-						}
-						buffer.flip();
-						
-						
+			try {
+				while(answersLog.missingAnswers()) {
+					dc.receive(buffer);
+					buffer.flip();
+					if(buffer.remaining() < 8) {
+						logger.info("package corrupted");
+						continue;
 					}
-					
-				}catch(AsynchronousCloseException e) {
-	    			logger.info("AsynchronousException");
-	    		}catch(IOException e) {
-	    			logger.severe("IOException");
-	    		} finally {
-	    			logger.info("end");
-	    		}
-				Files.write(Paths.get(outFilename),Arrays.asList(upperCaseLines), UTF8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
+					var id  = (int) buffer.getLong();
+					if(!answersLog.getAnswer(id)) {
+						answersLog.setAnswer(id);
+						upperCaseLines[id] = UTF8.decode(buffer).toString();
+					}
+					buffer.clear();
+				}
+				
+			}catch(AsynchronousCloseException e) {
+    			logger.info("AsynchronousException of launch");
+    		}catch(IOException e) {
+    			logger.severe("IOException of launch");
+    		} finally {
+    			logger.info("End of launch");
+    		}
+			
+			senderThread.interrupt();
+			Files.write(Paths.get(outFilename),Arrays.asList(upperCaseLines), UTF8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING);
 
         }
 

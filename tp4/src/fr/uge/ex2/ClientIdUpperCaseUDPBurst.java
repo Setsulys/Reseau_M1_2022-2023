@@ -80,37 +80,36 @@ public class ClientIdUpperCaseUDPBurst {
 
         public void launch() throws IOException {
             Thread senderThread = Thread.ofPlatform().start(this::senderThreadRun);
-            var buffer = ByteBuffer.allocate(BUFFER_SIZE);
-				try {
-					while(answersLog.missingAnswers()) {
-						dc.receive(buffer);
-						buffer.flip();
-						if(buffer.remaining() < 8) {
-							logger.info("package corrupted");
-							continue;
-						}
-						var id  = (int) buffer.getLong();
-						if(!answersLog.getAnswer(id)) {
-							answersLog.setAnswer(id);
-							upperCaseLines[id] = UTF8.decode(buffer).toString();
-						}
-						buffer.clear();
+			try {
+				var buffer = ByteBuffer.allocate(BUFFER_SIZE);
+				while(answersLog.missingAnswers()) {
+					dc.receive(buffer);
+					buffer.flip();
+					if(buffer.remaining() < 8) {
+						logger.info("package corrupted");
+						continue;
 					}
-					
-				}catch(AsynchronousCloseException e) {
-	    			logger.info("AsynchronousException of launch");
-	    		}catch(IOException e) {
-	    			logger.severe("IOException of launch");
-	    		} finally {
-	    			logger.info("End of launch");
-	    		}
+					var id  = (int) buffer.getLong();
+					if(!answersLog.getAnswer(id)) {
+						answersLog.setAnswer(id);
+						upperCaseLines[id] = UTF8.decode(buffer).toString();
+					}
+					buffer.clear();
+				}
 				
-				senderThread.interrupt();
-				Files.write(Paths.get(outFilename),Arrays.asList(upperCaseLines), UTF8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-
+			}catch(AsynchronousCloseException e) {
+    			logger.info("AsynchronousException of launch");
+    		}catch(IOException e) {
+    			logger.severe("IOException of launch");
+    		} finally {
+    			logger.info("End of launch");
+    		}
+			
+			senderThread.interrupt();
+			Files.write(Paths.get(outFilename),Arrays.asList(upperCaseLines), UTF8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING);
         }
 
         public static void main(String[] args) throws IOException, InterruptedException {

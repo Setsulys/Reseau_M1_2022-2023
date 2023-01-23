@@ -14,7 +14,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
-import java.util.logging.Level;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 public class ClientIdUpperCaseUDPBurst {
@@ -44,29 +44,35 @@ public class ClientIdUpperCaseUDPBurst {
             this.dc = DatagramChannel.open();
             dc.bind(null);
             this.upperCaseLines = new String[nbLines];
-            this.answersLog = null; // TODO
+            this.answersLog = new AnswersLog(nbLines);
         }
 
         private void senderThreadRun() {
         	try {
-        		while(!Thread.interrupted()) {
-        			var buffer = ByteBuffer.allocate(BUFFER_SIZE);
-        			dc.receive(buffer);
-        			buffer.flip();
-        			if(buffer.hasRemaining()) {
-        				lines.add(UTF8.decode(buffer).toString());
+				var buffer = ByteBuffer.allocate(BUFFER_SIZE);
+        		while(answersLog.missingAnswers()) {
+        			var lineNumber = 0;
+        			for(var line : lines) {
+        				if(!answersLog.getAnswer(lineNumber)) {
+        					buffer.putLong(lineNumber);
+        					buffer.put(UTF8.encode(line));
+        					buffer.flip();
+        					dc.send(buffer, serverAddress);
+        					buffer.clear();
+        				}
+        				lineNumber++;
         			}
+        			var start = System.currentTimeMillis(); // phase d'attente
+					while(timeout  > (System.currentTimeMillis() - start)) {// tant qu'il reste du temps on stop le programme
+					}
         		}
-        	/*}catch(InterruptedException e) {
-    			logger.info("Interrupted");*/
+
     		}catch(AsynchronousCloseException e) {
-    			logger.info("a");
-    		}/*catch(Exception) {
-    			
-    		}*/catch(IOException e) {
-    			logger.severe("IOException");
+    			logger.info("AsynchronousException of SenderThreadRun");
+    		}catch(IOException e) {
+    			logger.severe("IOException of SenderThreadRun");
     		} finally {
-    			logger.info("end");
+    			logger.info("End of SenderThreadRun");
     		}
 			// TODO : body of the sender thread
 
@@ -75,13 +81,36 @@ public class ClientIdUpperCaseUDPBurst {
         public void launch() throws IOException {
             Thread senderThread = Thread.ofPlatform().start(this::senderThreadRun);
             
-				// TODO : body of the receiver thread
+			try {
+				var buffer = ByteBuffer.allocate(BUFFER_SIZE);
+				while(answersLog.missingAnswers()) {
+					dc.receive(buffer);
+					buffer.flip();
+					if(buffer.remaining() < 8) {
+						logger.info("package corrupted");
+						continue;
+					}
+					var id  = (int) buffer.getLong();
+					if(!answersLog.getAnswer(id)) {
+						answersLog.setAnswer(id);
+						upperCaseLines[id] = UTF8.decode(buffer).toString();
+					}
+					buffer.clear();
+				}
 				
-				Files.write(Paths.get(outFilename),Arrays.asList(upperCaseLines), UTF8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-
+			}catch(AsynchronousCloseException e) {
+    			logger.info("AsynchronousException of launch");
+    		}catch(IOException e) {
+    			logger.severe("IOException of launch");
+    		} finally {
+    			logger.info("End of launch");
+    		}
+			
+			senderThread.interrupt();
+			Files.write(Paths.get(outFilename),Arrays.asList(upperCaseLines), UTF8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING);
         }
 
         public static void main(String[] args) throws IOException, InterruptedException {
@@ -107,14 +136,42 @@ public class ClientIdUpperCaseUDPBurst {
 
         private static class AnswersLog {
         	private final BitSet answers;
-        	private final int nblines;
+        	private final int nbLines;
+        	private final ReentrantLock lock = new 	ReentrantLock();
         	
-        	public AnswersLog(int nblines) {
-        		if(nblines < 0) {
+        	public AnswersLog(int nbLines) {
+        		if(nbLines < 0) {
         			throw new IllegalArgumentException();
         		}
-        		this.nblines = nblines;
-        		this.answers = new BitSet(nblines);
+        		this.nbLines = nbLines;
+        		this.answers = new BitSet(nbLines);
+        	}
+        	
+        	public boolean missingAnswers() {
+        		lock.lock();
+        		try {
+        			return answers.cardinality() != nbLines;
+        		}finally {
+        			lock.unlock();
+        		}
+        	}
+        	
+        	public void setAnswer(int value) {
+        		lock.lock();
+        		try {
+        			answers.set(value);;
+        		}finally {
+        			lock.unlock();
+        		}
+        	}
+        	
+        	public boolean getAnswer(int value) {
+        		lock.lock();
+        		try {
+        			return answers.get(value);
+        		}finally {
+        			lock.unlock();
+        		}
         	}
 
         }
