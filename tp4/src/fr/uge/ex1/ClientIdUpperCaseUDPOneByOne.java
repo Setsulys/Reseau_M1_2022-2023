@@ -99,14 +99,10 @@ public class ClientIdUpperCaseUDPOneByOne {
 				var datas = new Response(id, line);
 				var buffer = datas.buffer();
 				do {
-					
 					dc.send(buffer, server);
 					buffer.flip(); //on flip le buffer pour revenir sur la zone de travail
-					msg = queue.poll(timeout,TimeUnit.MICROSECONDS);
-					var start = System.currentTimeMillis(); // phase d'attente
-					while(timeout > (System.currentTimeMillis() - start)) {// tant qu'il reste du temps on stop le programme
-					}
-				}while(msg == null || msg.id != id);
+					msg = waitForAnswer(timeout,id);
+				}while(msg == null);
 				logger.info("Datas : " + msg.toString());
 				
 				id++;
@@ -115,8 +111,6 @@ public class ClientIdUpperCaseUDPOneByOne {
 
 			listenerThread.interrupt();
 			Files.write(Paths.get(outFilename), upperCaseLines, UTF8, CREATE, WRITE, TRUNCATE_EXISTING);
-		}catch(InterruptedException e) {
-			logger.info("Interrupted by Lauch");
 		}catch(AsynchronousCloseException e) {
 			logger.info("AsynchronousException of Launch");
 		}catch(IOException e) {
@@ -127,6 +121,27 @@ public class ClientIdUpperCaseUDPOneByOne {
 		}
 	}
 
+	public Response waitForAnswer( long timeout, long id) {
+        try {
+            Response rep;
+            long start;
+            do {
+                start = System.currentTimeMillis();
+                rep = queue.poll(timeout,TimeUnit.MILLISECONDS);
+                if(rep == null || timeout <= 0) {
+                    return null;
+                }
+                timeout = timeout - (System.currentTimeMillis() - start);
+
+            }while(rep.id != id);
+            return rep;
+
+        } catch (InterruptedException e) {
+            logger.info("interrupted");
+        }
+        return null;
+    }
+	
 	public static void main(String[] args) throws IOException, InterruptedException {
 		if (args.length != 5) {
 			usage();

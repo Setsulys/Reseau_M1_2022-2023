@@ -3,7 +3,6 @@
     <fullyQualifiedTypeName name="java.nio.channels.ReadableByteChannel"/>
     <fullyQualifiedTypeName name="java.nio.channels.Channels"/>
     <fullyQualifiedTypeName name="java.nio.charset.StandardCharsets"/>
-    <fullyQualifiedTypeName name="java.net.InetSocketAddress"/>
     <fullyQualifiedTypeName name="java.nio.CharBuffer"/>
     <fullyQualifiedTypeName name="java.nio.charset.Charset"/>
     <fullyQualifiedTypeName name="java.util.Optional"/>
@@ -12,13 +11,8 @@
     <fullyQualifiedTypeName name="java.util.logging.Logger"/>
     <fullyQualifiedTypeName name="fr.uge.ex2.ClientUpperCaseUDPRetry"/>
     <fullyQualifiedTypeName name="java.nio.channels.DatagramChannel"/>
-    <fullyQualifiedTypeName name="java.util.concurrent.TimeUnit"/>
     <fullyQualifiedTypeName name="java.lang.InterruptedException"/>
-    <fullyQualifiedTypeName name="java.io.IOException"/>
-    <fullyQualifiedTypeName name="java.nio.channels.AsynchronousCloseException"/>
     <fullyQualifiedTypeName name="fr.uge.ex1.ClientIdUpperCaseUDPOneByOne.Response"/>
-    <fullyQualifiedTypeName name="java.lang.System"/>
-    <fullyQualifiedTypeName name="java.nio.channels.ClosedByInterruptException"/>
     <fullyQualifiedTypeName name="fr.uge.ex2.ClientIdUpperCaseUDPBurst.AnswersLog"/>
     <fullyQualifiedTypeName name="java.lang.IllegalArgumentException"/>
     <fullyQualifiedTypeName name="java.util.BitSet"/>
@@ -26,4 +20,10 @@
     <fullyQualifiedTypeName name="java.nio.ByteBuffer"/>
     <fullyQualifiedTypeName name="java.util.logging.Level"/>
     <fullyQualifiedTypeName name="java.nio.BufferUnderflowException"/>
+    <fullyQualifiedTypeName name="java.util.concurrent.TimeUnit"/>
+    <fullyQualifiedTypeName name="java.lang.System"/>
+    <fullyQualifiedTypeName name="java.net.InetSocketAddress"/>
+    <fullyQualifiedTypeName name="java.nio.channels.AsynchronousCloseException"/>
+    <fullyQualifiedTypeName name="java.io.IOException"/>
+    <fullyQualifiedTypeName name="java.nio.channels.ClosedByInterruptException"/>
 </qualifiedTypeNameHistroy>
