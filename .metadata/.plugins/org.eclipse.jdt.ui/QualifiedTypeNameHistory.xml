@@ -10,14 +10,11 @@
     <fullyQualifiedTypeName name="java.lang.System.Logger"/>
     <fullyQualifiedTypeName name="java.util.logging.Logger"/>
     <fullyQualifiedTypeName name="fr.uge.ex2.ClientUpperCaseUDPRetry"/>
-    <fullyQualifiedTypeName name="java.nio.channels.DatagramChannel"/>
     <fullyQualifiedTypeName name="java.lang.InterruptedException"/>
     <fullyQualifiedTypeName name="fr.uge.ex1.ClientIdUpperCaseUDPOneByOne.Response"/>
     <fullyQualifiedTypeName name="fr.uge.ex2.ClientIdUpperCaseUDPBurst.AnswersLog"/>
     <fullyQualifiedTypeName name="java.lang.IllegalArgumentException"/>
-    <fullyQualifiedTypeName name="java.util.BitSet"/>
     <fullyQualifiedTypeName name="java.util.concurrent.locks.ReentrantLock"/>
-    <fullyQualifiedTypeName name="java.nio.ByteBuffer"/>
     <fullyQualifiedTypeName name="java.util.logging.Level"/>
     <fullyQualifiedTypeName name="java.nio.BufferUnderflowException"/>
     <fullyQualifiedTypeName name="java.util.concurrent.TimeUnit"/>
@@ -26,4 +23,17 @@
     <fullyQualifiedTypeName name="java.nio.channels.AsynchronousCloseException"/>
     <fullyQualifiedTypeName name="java.io.IOException"/>
     <fullyQualifiedTypeName name="java.nio.channels.ClosedByInterruptException"/>
+    <fullyQualifiedTypeName name="java.util.HashMap"/>
+    <fullyQualifiedTypeName name="java.io.UncheckedIOException"/>
+    <fullyQualifiedTypeName name="java.nio.channels.SelectionKey"/>
+    <fullyQualifiedTypeName name="java.nio.ByteBuffer"/>
+    <fullyQualifiedTypeName name="javax.naming.Context"/>
+    <fullyQualifiedTypeName name="java.nio.channels.DatagramChannel"/>
+    <fullyQualifiedTypeName name="java.util.Arrays"/>
+    <fullyQualifiedTypeName name="java.util.ArrayList"/>
+    <fullyQualifiedTypeName name="java.util.BitSet"/>
+    <fullyQualifiedTypeName name="java.lang.Byte"/>
+    <fullyQualifiedTypeName name="fr.uge.ex1.ServerSum.Summering"/>
+    <fullyQualifiedTypeName name="fr.uge.ex1.ServerSum.SumSession"/>
+    <fullyQualifiedTypeName name="fr.uge.ex1.ServerIdUpperCaseUDP"/>
 </qualifiedTypeNameHistroy>
