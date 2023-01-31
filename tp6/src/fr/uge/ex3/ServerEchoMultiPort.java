@@ -14,13 +14,12 @@ import java.util.logging.Logger;
 
 public class ServerEchoMultiPort {
     private static final Logger logger = Logger.getLogger(ServerEchoMultiPort.class.getName());
-
     private final Selector selector;
-    private final int BUFFER_SIZE = 1024;
     private int LowerPort;
     private int UpperPort;
     
     public class Context {
+    	private final int BUFFER_SIZE = 1024;
     	private final ByteBuffer ContextBuffer = ByteBuffer.allocate(BUFFER_SIZE);
     	private InetSocketAddress sender;
     	}
