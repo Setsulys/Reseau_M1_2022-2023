@@ -19,14 +19,11 @@
     <fullyQualifiedTypeName name="java.nio.BufferUnderflowException"/>
     <fullyQualifiedTypeName name="java.util.concurrent.TimeUnit"/>
     <fullyQualifiedTypeName name="java.lang.System"/>
-    <fullyQualifiedTypeName name="java.net.InetSocketAddress"/>
     <fullyQualifiedTypeName name="java.nio.channels.AsynchronousCloseException"/>
     <fullyQualifiedTypeName name="java.io.IOException"/>
     <fullyQualifiedTypeName name="java.nio.channels.ClosedByInterruptException"/>
     <fullyQualifiedTypeName name="java.util.HashMap"/>
     <fullyQualifiedTypeName name="java.io.UncheckedIOException"/>
-    <fullyQualifiedTypeName name="java.nio.channels.SelectionKey"/>
-    <fullyQualifiedTypeName name="java.nio.ByteBuffer"/>
     <fullyQualifiedTypeName name="javax.naming.Context"/>
     <fullyQualifiedTypeName name="java.nio.channels.DatagramChannel"/>
     <fullyQualifiedTypeName name="java.util.Arrays"/>
@@ -36,4 +33,8 @@
     <fullyQualifiedTypeName name="fr.uge.ex1.ServerSum.Summering"/>
     <fullyQualifiedTypeName name="fr.uge.ex1.ServerSum.SumSession"/>
     <fullyQualifiedTypeName name="fr.uge.ex1.ServerIdUpperCaseUDP"/>
+    <fullyQualifiedTypeName name="java.net.InetSocketAddress"/>
+    <fullyQualifiedTypeName name="java.nio.ByteBuffer"/>
+    <fullyQualifiedTypeName name="java.nio.channels.SelectionKey"/>
+    <fullyQualifiedTypeName name="fr.uge.ex3.ServerEchoMultiPort"/>
 </qualifiedTypeNameHistroy>

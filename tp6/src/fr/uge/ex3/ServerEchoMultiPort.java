@@ -22,7 +22,32 @@ public class ServerEchoMultiPort {
     	private final int BUFFER_SIZE = 1024;
     	private final ByteBuffer ContextBuffer = ByteBuffer.allocate(BUFFER_SIZE);
     	private InetSocketAddress sender;
+    	
+    	
+    	public void read(SelectionKey key) throws IOException {
+    		ContextBuffer.clear();
+        	var dchannel =(DatagramChannel) key.channel();
+        	sender = (InetSocketAddress) dchannel.receive(ContextBuffer);
+        	ContextBuffer.flip();
+        	if(sender == null) {
+        		logger.info("Nothing received");
+        		return;
+        	}
+        	sender = (InetSocketAddress)sender;
+        	key.interestOps(SelectionKey.OP_WRITE);
     	}
+    	
+    	public void write(SelectionKey key) throws IOException {
+    		var dchannel = (DatagramChannel) key.channel();
+            dchannel.send(ContextBuffer, sender);
+            if(ContextBuffer.hasRemaining()) {
+            	logger.info("Packet not sended");
+            	return;
+            }
+            key.interestOps(SelectionKey.OP_READ);
+            ContextBuffer.clear();
+    	}
+    }
     
     public ServerEchoMultiPort(int start,int end) throws IOException {
         this.LowerPort = start;
@@ -45,6 +70,7 @@ public class ServerEchoMultiPort {
         	}catch(UncheckedIOException e) {
         		throw e.getCause();
         	}
+        	
         }
     }
 
@@ -64,28 +90,13 @@ public class ServerEchoMultiPort {
 
     private void doRead(SelectionKey key) throws IOException {
     	var context = (Context)key.attachment();
-    	context.ContextBuffer.clear();
-    	var dchannel =(DatagramChannel) key.channel();
-    	var sender = dchannel.receive(context.ContextBuffer);
-    	context.ContextBuffer.flip();
-    	if(sender == null) {
-    		logger.info("Nothing received");
-    		return;
-    	}
-    	context.sender = (InetSocketAddress)sender;
-    	key.interestOps(SelectionKey.OP_WRITE);
+    	context.read(key);
+    	
     }
 
     private void doWrite(SelectionKey key) throws IOException {
         var context = (Context) key.attachment();
-        var dchannel = (DatagramChannel) key.channel();
-        dchannel.send(context.ContextBuffer, context.sender);
-        if(context.ContextBuffer.hasRemaining()) {
-        	logger.info("Packet not sended");
-        	return;
-        }
-        key.interestOps(SelectionKey.OP_READ);
-        context.ContextBuffer.clear();
+        context.write(key);
     }
 
     public static void usage() {
