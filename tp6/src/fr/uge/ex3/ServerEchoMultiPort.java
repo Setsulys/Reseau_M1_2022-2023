@@ -10,6 +10,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 public class ServerEchoMultiPort {
@@ -20,32 +21,34 @@ public class ServerEchoMultiPort {
     
     public class Context {
     	private final int BUFFER_SIZE = 1024;
-    	private final ByteBuffer ContextBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+    	private final ByteBuffer contextBuffer = ByteBuffer.allocate(BUFFER_SIZE);
     	private InetSocketAddress sender;
+    	private DatagramChannel dchannel;
     	
+    	
+    	public Context(DatagramChannel dc) {
+    		this.dchannel = Objects.requireNonNull(dc);
+    	}
     	
     	public void read(SelectionKey key) throws IOException {
-    		ContextBuffer.clear();
-        	var dchannel =(DatagramChannel) key.channel();
-        	sender = (InetSocketAddress) dchannel.receive(ContextBuffer);
-        	ContextBuffer.flip();
+    		contextBuffer.clear();
+        	sender = (InetSocketAddress) dchannel.receive(contextBuffer);
+        	contextBuffer.flip();
         	if(sender == null) {
         		logger.info("Nothing received");
         		return;
         	}
-        	sender = (InetSocketAddress)sender;
         	key.interestOps(SelectionKey.OP_WRITE);
     	}
     	
     	public void write(SelectionKey key) throws IOException {
-    		var dchannel = (DatagramChannel) key.channel();
-            dchannel.send(ContextBuffer, sender);
-            if(ContextBuffer.hasRemaining()) {
+            dchannel.send(contextBuffer, sender);
+            if(contextBuffer.hasRemaining()) {
             	logger.info("Packet not sended");
             	return;
             }
             key.interestOps(SelectionKey.OP_READ);
-            ContextBuffer.clear();
+            contextBuffer.clear();
     	}
     }
     
@@ -57,7 +60,7 @@ public class ServerEchoMultiPort {
         	var dc = DatagramChannel.open();
         	dc.bind(new InetSocketAddress(port));
         	dc.configureBlocking(false);
-            dc.register(selector, SelectionKey.OP_READ,new Context());
+            dc.register(selector, SelectionKey.OP_READ,new Context(dc));
             
         }
     }
