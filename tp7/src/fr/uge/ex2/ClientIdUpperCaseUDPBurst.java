@@ -1,4 +1,4 @@
-package fr.uge.ex1;
+package fr.uge.ex2;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -11,15 +11,19 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
+
+import fr.uge.ex1.ClientIdUpperCaseUDPOneByOne.State;
 
 import static java.nio.file.StandardOpenOption.*;
 
-public class ClientIdUpperCaseUDPOneByOne {
+public class ClientIdUpperCaseUDPBurst {
 
-    private static Logger logger = Logger.getLogger(ClientIdUpperCaseUDPOneByOne.class.getName());
+    private static Logger logger = Logger.getLogger(ClientIdUpperCaseUDPBurst.class.getName());
     private static final Charset UTF8 = Charset.forName("UTF8");
     private static final int BUFFER_SIZE = 1024;
 
@@ -34,20 +38,20 @@ public class ClientIdUpperCaseUDPOneByOne {
     private final DatagramChannel dc;
     private final Selector selector;
     private final SelectionKey uniqueKey;
-    private int currentline; 
-    private long startTime;
+    private final int startTime;
     private ByteBuffer receiveBuffer ;
-    private ByteBuffer senddingBuffer;
-    private State state;
+    private ByteBuffer senddingBuffer;    
+    private final AnswerLog ans;
+
     // TODO add new fields
 
-    
-    
+    private State state;
+
     private static void usage() {
         System.out.println("Usage : ClientIdUpperCaseUDPOneByOne in-filename out-filename timeout host port ");
     }
     
-    private ClientIdUpperCaseUDPOneByOne(List<String> lines, long timeout, InetSocketAddress serverAddress,
+    private ClientIdUpperCaseUDPBurst(List<String> lines, long timeout, InetSocketAddress serverAddress,
             DatagramChannel dc, Selector selector, SelectionKey uniqueKey){
         this.lines = lines;
         this.timeout = timeout;
@@ -56,12 +60,12 @@ public class ClientIdUpperCaseUDPOneByOne {
         this.selector = selector;
         this.uniqueKey = uniqueKey;
         this.state = State.SENDING;
-        this.currentline = 0;
         this.receiveBuffer= ByteBuffer.allocate(BUFFER_SIZE);
         this.senddingBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+        this.ans = new AnswerLog(lines.size());
     }
 
-    public static ClientIdUpperCaseUDPOneByOne create(String inFilename, long timeout,
+    public static ClientIdUpperCaseUDPBurst create(String inFilename, long timeout,
             InetSocketAddress serverAddress) throws IOException {
         Objects.requireNonNull(inFilename);
         Objects.requireNonNull(serverAddress);
@@ -74,7 +78,7 @@ public class ClientIdUpperCaseUDPOneByOne {
         dc.bind(null);
         var selector = Selector.open();
         var uniqueKey = dc.register(selector, SelectionKey.OP_WRITE);
-        return new ClientIdUpperCaseUDPOneByOne(lines, timeout, serverAddress, dc, selector, uniqueKey);
+        return new ClientIdUpperCaseUDPBurst(lines, timeout, serverAddress, dc, selector, uniqueKey);
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -131,11 +135,10 @@ public class ClientIdUpperCaseUDPOneByOne {
     private long updateInterestOps() {
         // TODO
     	switch(state) {
-    	case SENDING :
+    	case SENDING: 
     		uniqueKey.interestOps(SelectionKey.OP_WRITE);
     		state = State.RECEIVING;
-    		return 0;
-    	case RECEIVING :
+    	case RECEIVING:
     		var tm = (timeout + startTime) - System.currentTimeMillis();
     		if(tm <= 0) {
     			state = State.SENDING;
@@ -144,7 +147,8 @@ public class ClientIdUpperCaseUDPOneByOne {
     		}
     		uniqueKey.interestOps(SelectionKey.OP_READ); 
     		return tm;
-    	default : return 0;
+    	default: 
+    		return 0;
     	}
     }
 
@@ -161,27 +165,16 @@ public class ClientIdUpperCaseUDPOneByOne {
     private void doRead() throws IOException {
         // TODO
     	receiveBuffer.clear();
-    	var sender =dc.receive(receiveBuffer);
-    	if(sender == null) {
-    		logger.info("No packet received");
-    		return;
-    	}
+    	dc.receive(receiveBuffer);
     	receiveBuffer.flip();
     	if(receiveBuffer.remaining() < Long.BYTES) {
     		logger.info("Malformed Packet");
     		return;
     	}
-    	if(receiveBuffer.getLong() != currentline) {
-    		logger.info("wrong id");
-    		return;
-    	}
-    	upperCaseLines.add(UTF8.decode(receiveBuffer).toString());
-    	currentline++;
-    	if(currentline == lines.size()) {
-    		state = State.FINISHED;
-    	}
-    	else {
-    		state = State.SENDING;
+    	var id = (int) receiveBuffer.getLong();
+    	if(!ans.missingAnswer()) {
+    		ans.setAnswer(id);
+    		upperCaseLines.add(UTF8.decode(receiveBuffer).toString());
     	}
     }
 
@@ -192,18 +185,48 @@ public class ClientIdUpperCaseUDPOneByOne {
      */
 
     private void doWrite() throws IOException {
-        // TODO	
-		senddingBuffer.putLong(currentline);
-		senddingBuffer.put(UTF8.encode(lines.get(currentline)));
-		senddingBuffer.flip();
-		dc.send(senddingBuffer, serverAddress);
-		
-		startTime= System.currentTimeMillis();
-		state = State.RECEIVING;
-		if(senddingBuffer.hasRemaining()) {
-			logger.info("Packet not Sended");
-			return;
-		}
-		senddingBuffer.clear();
+        // TODO
+    }
+    
+    
+    class AnswerLog {
+    	private final BitSet answers;
+    	private final int nblines;
+    	private final ReentrantLock lock = new ReentrantLock();
+    	
+    	public AnswerLog(int nblines) {
+    		if(nblines < 0 ) {
+    			throw new IllegalArgumentException();
+    		}
+    		this.nblines = nblines;
+    		this.answers = new BitSet(nblines);
+    	}
+    	
+    	public boolean missingAnswer() {
+    		lock.lock();
+    		try {
+    			return answers.cardinality() != nblines;
+    		}finally {
+    			lock.unlock();
+    		}
+    	}
+    	
+    	public void setAnswer(int value) {
+    		lock.lock();
+    		try {
+    			answers.set(value);;
+    		}finally {
+    			lock.unlock();
+    		}
+    	}
+    	
+    	public boolean getAnswer(int value) {
+    		lock.lock();
+    		try {
+    			return answers.get(value);
+    		}finally {
+    			lock.unlock();
+    		}
+    	}   	
     }
 }
