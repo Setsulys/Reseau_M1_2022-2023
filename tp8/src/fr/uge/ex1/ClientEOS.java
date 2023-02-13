@@ -31,10 +31,26 @@ public class ClientEOS {
      */
 
     public static String getFixedSizeResponse(String request, SocketAddress server, int bufferSize) throws IOException {
-
-        // TODO
-
-        return null;
+        // TODO 	
+    	SocketChannel sc = SocketChannel.open();
+    	var buffer = ByteBuffer.allocate(bufferSize);
+    	int read = 0;
+    	
+    	sc.connect(server);
+    	sc.write(UTF8_CHARSET.encode(request));
+    	sc.shutdownOutput();
+    	while(buffer.remaining() != 0) {
+    		read = sc.read(buffer);
+    	}
+    	buffer.flip();
+    	if (read == -1){
+    	    System.out.println("Connection closed for reading");
+    	    return null;
+    	  } else {
+    	    System.out.println("Read "+ read +" bytes");
+    	  }
+    	sc.close();
+        return UTF8_CHARSET.decode(buffer).toString();
     }
 
     /**
@@ -52,10 +68,35 @@ public class ClientEOS {
      */
 
     public static String getUnboundedResponse(String request, SocketAddress server) throws IOException {
-
         // TODO
-
-        return null;
+    	SocketChannel sc = SocketChannel.open();
+    	var buffer = ByteBuffer.allocate(BUFFER_SIZE);
+    	//int read=0;
+    	
+    	sc.connect(server);
+    	sc.write(UTF8_CHARSET.encode(request));
+    	sc.shutdownOutput();
+//    	while(read >=0) {
+//    		if(!buffer.hasRemaining()) {
+//    			buffer.flip();
+//    			buffer = store(buffer);
+//    		}
+//    		read = sc.read(buffer);	
+//    	}
+    	while(readFully(sc, buffer)) {
+    		if(!buffer.hasRemaining()) {
+    			buffer.flip();
+    			buffer = store(buffer);
+    		}
+    	}
+    	buffer.flip();
+    	sc.close();
+        return UTF8_CHARSET.decode(buffer).toString();
+    }
+    
+    public static ByteBuffer store(ByteBuffer stored) {
+    	var tempBuffer = ByteBuffer.allocate(stored.remaining()*2);
+    	return tempBuffer.put(stored);
     }
 
     /**
@@ -68,12 +109,16 @@ public class ClientEOS {
      */
     static boolean readFully(SocketChannel sc, ByteBuffer buffer) throws IOException {
         // TODO
-        return false;
+    	int read = 0;
+    	while(buffer.hasRemaining() && read !=-1) {
+    		read = sc.read(buffer);
+    	}
+        return read!=-1;
     }
 
     public static void main(String[] args) throws IOException {
         var google = new InetSocketAddress("www.google.fr", 80);
-        System.out.println(getFixedSizeResponse("GET / HTTP/1.1\r\nHost: www.google.fr\r\n\r\n", google, 512));
-        // System.out.println(getUnboundedResponse("GET / HTTP/1.1\r\nHost: www.google.fr\r\n\r\n", google));
+        //System.out.println(getFixedSizeResponse("GET / HTTP/1.1\r\nHost: www.google.fr\r\n\r\n", google, 512));
+         System.out.println(getUnboundedResponse("GET / HTTP/1.1\r\nHost: www.google.fr\r\n\r\n", google));
     }
 }
