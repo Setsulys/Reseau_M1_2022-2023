@@ -32,13 +32,13 @@ public class ClientConcatenation {
 		buffer.clear();
 		buffer.putInt(lines.size());
 		for(var e:lines) {
-			buffer.putInt(UTF8.encode(e).remaining());
-			buffer.put(UTF8.encode(e));
+			var enc = UTF8.encode(e);
+			buffer.putInt(enc.remaining());
+			buffer.put(enc);
 		}
 		sc.write(buffer.flip());
-		sc.shutdownOutput();
 		buffer.clear();
-		
+		buffer.limit(Integer.BYTES);
 		if(!readFully(sc,buffer)) {
 			return null;
 		}
