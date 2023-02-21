@@ -32,15 +32,20 @@ public class FixedPrestartedLongSumServer {
         logger.info("Server started");
     	
         while (!Thread.interrupted()) {
-            SocketChannel client = serverSocketChannel.accept();
-            	try {
-                    logger.info("Connection accepted from " + client.getRemoteAddress());
-                    serve(client);
-                } catch (IOException ioe) {
-                    logger.log(Level.SEVERE, "Connection terminated with client by IOException", ioe.getCause());
-                } finally {
-                    silentlyClose(client);
-                }
+        	try {
+        		SocketChannel client = serverSocketChannel.accept();
+	        	try {
+	                logger.info("Connection accepted from " + client.getRemoteAddress());
+	                serve(client);
+	            } catch (IOException ioe) {
+	                logger.log(Level.SEVERE, "Connection terminated with client by IOException", ioe.getCause());
+	            } finally {
+	                silentlyClose(client);
+	            }
+        	}catch(IOException e) {
+        		logger.log(Level.SEVERE,"Cannot continue server",e.getCause());
+        		return;
+        	}
         }
 
     }
