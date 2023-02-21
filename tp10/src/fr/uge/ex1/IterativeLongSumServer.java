@@ -14,7 +14,6 @@ public class IterativeLongSumServer {
 
     private static final Logger logger = Logger.getLogger(IterativeLongSumServer.class.getName());
     private final ServerSocketChannel serverSocketChannel;
-    private final ByteBuffer intBuffer = ByteBuffer.allocate(Integer.BYTES);
 
     public IterativeLongSumServer(int port) throws IOException {
         serverSocketChannel = ServerSocketChannel.open();
@@ -55,39 +54,31 @@ public class IterativeLongSumServer {
      * @throws IOException
      */
     private void serve(SocketChannel sc) throws IOException {
-    	boolean finished = false;
     	while(true) {
     		long sum=0;
-	    	intBuffer.clear();
-	    	if(!readFully(sc, intBuffer)) {
-	    		if(finished == true) {
-	    			logger.info("Finished");
-	    		}
-	    		else {
+	    	var buffer = ByteBuffer.allocate(Integer.BYTES);
+	    	if(!readFully(sc, buffer)) {
 	    			logger.info("Not readfull");
-	    		}
 	    		return;
 	    	}
-	    	intBuffer.flip();
-	    	var oct = intBuffer.getInt();
-	    	var opBuffer = ByteBuffer.allocate(oct*Long.BYTES);
-	    	if(!readFully(sc, opBuffer)) {
+	    	buffer.flip();
+	    	var oct = buffer.getInt();
+	    	buffer = ByteBuffer.allocate(oct*Long.BYTES);
+	    	if(!readFully(sc, buffer)) {
 	    		logger.info("Not readFull2");
 	    		return;
 	    	}
-	    	opBuffer.flip();
+	    	buffer.flip();
 	    	for(var i = 0; i < oct; i++) {
-	    		if(opBuffer.remaining() < Long.BYTES) {
+	    		if(buffer.remaining() < Long.BYTES) {
 	    			logger.info("Not a Long");
 	    			return;
 	    		}
-	    		sum+= opBuffer.getLong();
+	    		sum+= buffer.getLong();
 	    	}
-	    	opBuffer.clear();
-	    	sc.write(opBuffer.putLong(sum).flip());
-	    	finished=true;
+	    	buffer.clear();
+	    	sc.write(buffer.putLong(sum).flip());
     	}
-    	
     }
 
     /**
