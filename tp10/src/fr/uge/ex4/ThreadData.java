@@ -48,7 +48,9 @@ public class ThreadData {
 		
 		public void close() {
 			try {
-				sc.close();
+				if(sc != null) {
+					sc.close();
+				}
 			} catch (IOException e) {
 				logger.info("IOException");;
 			}

@@ -5,7 +5,6 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
-import fr.uge.ex4.ThreadData;
 
 public class ThreadData {
 
@@ -50,7 +49,10 @@ public class ThreadData {
 		
 		public void close() {
 			try {
-				sc.close();
+				if(sc!= null) {
+					sc.close();
+				}
+			
 			} catch (IOException e) {
 				logger.info("IOException");;
 			}

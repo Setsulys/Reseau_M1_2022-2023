@@ -50,8 +50,7 @@ public class FixedPrestartedConcurrentLongSumServerWithTimeout{
 						data.setSocketChannel(client);
 				    	try {
 				            logger.info("Connection accepted from " + client.getRemoteAddress());
-				            serve(client);
-				            data.tick();
+				            serve(client,data);
 				        } catch(AsynchronousCloseException e) {
 				        	logger.info("Connection terminated, afk client");
 				        }catch (IOException ioe) {
@@ -75,10 +74,11 @@ public class FixedPrestartedConcurrentLongSumServerWithTimeout{
      * @param sc
      * @throws IOException
      */
-    private void serve(SocketChannel sc) throws IOException {
+    private void serve(SocketChannel sc,ThreadData data) throws IOException {
     	while(true) {
     		long sum=0;
 	    	var buffer = ByteBuffer.allocate(Integer.BYTES);
+            data.tick();
 	    	if(!readFully(sc, buffer)) {
 	    			logger.info("Not readfull");
 	    		return;
@@ -86,6 +86,7 @@ public class FixedPrestartedConcurrentLongSumServerWithTimeout{
 	    	buffer.flip();
 	    	var oct = buffer.getInt();
 	    	buffer = ByteBuffer.allocate(oct*Long.BYTES);
+            data.tick();
 	    	if(!readFully(sc, buffer)) {
 	    		logger.info("Not readFull2");
 	    		return;
@@ -146,7 +147,7 @@ public class FixedPrestartedConcurrentLongSumServerWithTimeout{
 				try {
 					for(var elements : td) {
 						elements.closeIfInactive(server.timeout);
-						Thread.sleep(server.timeout);
+						Thread.sleep(server.timeout/2);
 					}
 				}catch(InterruptedException e) {
 					logger.info("Manager Interrupted");
