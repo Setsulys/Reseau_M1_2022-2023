@@ -5,6 +5,7 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 public class ServerSumOneShot {
@@ -15,6 +16,48 @@ public class ServerSumOneShot {
 	private final ServerSocketChannel serverSocketChannel;
 	private final Selector selector;
 
+	
+//	public class Context {
+//		private final ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+//		private SocketChannel channel;
+//		
+//		
+//		public Context (SocketChannel channel) {
+//			this.channel = Objects.requireNonNull(channel);
+//		}
+//		
+//		
+//		public void read(SelectionKey key) throws IOException {
+//			buffer.clear();
+//			if(channel.read(buffer) ==-1) {
+//				channel.close();
+//				logger.info("Not all value readed");
+//				return;
+//			}
+//			buffer.flip();
+//			var fst = buffer.getInt();
+//			var snd = buffer.getInt();
+//			if(fst != Integer.BYTES ||snd != Integer.BYTES ) {
+//				logger.info("malformed packet");
+//			}
+//			buffer.clear();
+//			buffer.getInt(fst+snd);
+//			buffer.flip();
+//			key.interestOps(SelectionKey.OP_WRITE);
+//		}
+//		
+//		public void write(SelectionKey key) throws IOException {
+//			channel.write(buffer);
+//			if(buffer.hasRemaining()) {
+//				logger.info("Packet not sended");
+//				return;
+//			}
+//			key.interestOps(SelectionKey.OP_READ);
+//			buffer.clear();
+//		}
+//		
+//	}
+	
 	public ServerSumOneShot(int port) throws IOException {
 		serverSocketChannel = ServerSocketChannel.open();
 		serverSocketChannel.bind(new InetSocketAddress(port));
@@ -63,16 +106,44 @@ public class ServerSumOneShot {
 			return;
 		}
 		sc.configureBlocking(false);
-		sc.register(selector, SelectionKey.OP_READ);
+		//sc.register(selector, SelectionKey.OP_READ,new Context(sc));
+		sc.register(selector, SelectionKey.OP_READ,ByteBuffer.allocate(BUFFER_SIZE));
+
 	}
 
 	private void doRead(SelectionKey key) throws IOException {
 		// TODO
-		//var context = key.attach(ByteBuffer.allocate(BUFFER_SIZE));
+		var channel = (SocketChannel) key.channel();
+		var buffer = (ByteBuffer) key.attachment();
+		if(channel.read(buffer)==-1) {
+			channel.close();
+			logger.info("Not readfull");
+			return;
+		}
+		if(buffer.hasRemaining()) {
+			logger.info("remain place in the buffer");
+			return;
+		}
+		buffer.flip();
+		var sum = buffer.getInt() + buffer.getInt();
+		buffer.clear();
+		buffer.putInt(sum);
+		buffer.flip();
+		key.interestOps(SelectionKey.OP_WRITE);
+		
+		
 	}
 
 	private void doWrite(SelectionKey key) throws IOException {
-		// TODO
+		var channel = (SocketChannel) key.channel();
+		var buffer = (ByteBuffer) key.attachment();
+		channel.write(buffer);
+		if(buffer.hasRemaining()) {
+			logger.info("Not sendfully");
+			return;
+		}
+		silentlyClose(key);
+		
 	}
 
 	private void silentlyClose(SelectionKey key) {
