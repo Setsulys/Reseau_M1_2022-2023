@@ -14,7 +14,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static fr.uge.ex4.ThreadData.TICK;
 
 public class FixedPrestartedConcurrentLongSumServerWithTimeout{
 
@@ -147,7 +146,7 @@ public class FixedPrestartedConcurrentLongSumServerWithTimeout{
 				try {
 					for(var elements : td) {
 						elements.closeIfInactive(server.timeout);
-						Thread.sleep(TICK);
+						Thread.sleep(server.timeout);
 					}
 				}catch(InterruptedException e) {
 					logger.info("Manager Interrupted");

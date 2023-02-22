@@ -5,12 +5,13 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
+import fr.uge.ex4.ThreadData;
+
 public class ThreadData {
 
 	 private static final Logger logger = Logger.getLogger(ThreadData.class.getName());
 		private final ReentrantLock lock = new ReentrantLock();
 		private long times;
-		public final static int TICK = 5;
 		private SocketChannel sc;
 		
 		
@@ -18,7 +19,7 @@ public class ThreadData {
 			lock.lock();
 			try {
 				this.sc = client;
-				this.times = 0 ;
+				this.times = System.currentTimeMillis() ;
 			}finally {
 				lock.unlock();
 			}
@@ -27,7 +28,7 @@ public class ThreadData {
 		public void tick() {
 			lock.lock();
 			try {
-				this.times = 0;
+				this.times = System.currentTimeMillis();
 			}finally {
 				lock.unlock();
 			}
@@ -39,10 +40,8 @@ public class ThreadData {
 				if(sc == null) {
 					return;
 				}
-				if(times > timeout/TICK) {
+				if(times + timeout > System.currentTimeMillis()) {
 					close();
-				}else {
-					times++;
 				}
 			}finally {
 				lock.unlock();
