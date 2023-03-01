@@ -1,19 +1,20 @@
-package fr.uge.ex2;
+package fr.uge.part2.ex1;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ServerEcho {
+public class ServerSumBetter {
 	static private class Context {
 		private final SelectionKey key;
 		private final SocketChannel sc;
-		private final ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+		private final ByteBuffer bufferIn = ByteBuffer.allocate(BUFFER_SIZE);
+		private final ByteBuffer bufferOut = ByteBuffer.allocate(BUFFER_SIZE);
 		private boolean closed = false;
 
 		private Context(SelectionKey key) {
@@ -22,63 +23,42 @@ public class ServerEcho {
 		}
 
 		/**
-		 * Update the interestOps of the key looking only at values of the boolean
-		 * closed and the ByteBuffer buffer.
+		 * Process the content of bufferIn into bufferOut
 		 *
-		 * The convention is that buff is in write-mode.
+		 * The convention is that both buffers are in write-mode before the call to
+		 * process and after the call
+		 *
 		 */
+
+		private void process() {
+			// TODO
+			bufferIn.flip();
+			try {
+				while(bufferIn.remaining() > 2*Integer.BYTES && bufferOut.remaining() > Integer.BYTES) {
+					bufferOut.putInt(bufferIn.getInt()+bufferIn.getInt());
+				}
+				
+			}finally {
+				bufferIn.compact();
+			}
+			
+			
+			
+			
+		}
+
+		/**
+		 * Update the interestOps of the key looking only at values of the boolean
+		 * closed and of both ByteBuffers.
+		 *
+		 * The convention is that both buffers are in write-mode before the call to
+		 * updateInterestOps and after the call. Also it is assumed that process has
+		 * been be called just before updateInterestOps.
+		 */
+
 		private void updateInterestOps() {
 			// TODO
-			var interestOps = 0;
-			if(buffer.hasRemaining() && !closed) {
-				interestOps |= SelectionKey.OP_READ;
-			}
-			if(buffer.position() == 0) {
-				interestOps |= SelectionKey.OP_WRITE;
-			}
-			if(interestOps==0) {
-				silentlyClose();
-				return;
-			}
-			key.interestOps(interestOps);
-		}
-
-		/**
-		 * Performs the read action on sc
-		 *
-		 * The convention is that buffer is in write-mode before calling doRead and is in
-		 * write-mode after calling doRead
-		 *
-		 * @throws IOException
-		 */
-		private void doRead() throws IOException {
-			// TODO
-			if(sc.read(buffer)==-1) {
-				closed =true;
-				logger.info("not readfull");
-				return;
-			}
-			if(buffer.hasRemaining()) {
-				logger.info("remain place in the buffer");
-				return;
-			}
-			buffer.flip();
-			updateInterestOps();
-		}
-
-		/**
-		 * Performs the write action on sc
-		 *
-		 * The convention is that buffer is in write-mode before calling doWrite and is in
-		 * write-mode after calling doWrite
-		 *
-		 * @throws IOException
-		 */
-		private void doWrite() throws IOException {
-			// TODO
-			sc.write(buffer);
-			buffer.compact();
-			updateInterestOps();
+			
 		}
 
 		private void silentlyClose() {
@@ -88,15 +68,56 @@ public class ServerEcho {
 				// ignore exception
 			}
 		}
+
+		/**
+		 * Performs the read action on sc
+		 *
+		 * The convention is that both buffers are in write-mode before the call to
+		 * doRead and after the call
+		 *
+		 * @throws IOException
+		 */
+
+		private void doRead() throws IOException {
+			// TODO
+			if(sc.read(bufferIn)==-1) {
+				logger.info("not readfull");
+				return;
+			}
+			if(bufferIn.hasRemaining()) {
+				logger.info("remain place in the buffer");
+			}
+			bufferIn.flip();
+			process();
+			updateInterestOps();
+		}
+
+		/**
+		 * Performs the write action on sc
+		 *
+		 * The convention is that both buffers are in write-mode before the call to
+		 * doWrite and after the call
+		 *
+		 * @throws IOException
+		 */
+
+		private void doWrite() throws IOException {
+			// TODO
+			bufferOut.flip();
+			sc.write(bufferOut);
+			bufferOut.compact();
+			updateInterestOps();
+		}
+
 	}
 
-	private static final int BUFFER_SIZE = 1_024;
-	private static final Logger logger = Logger.getLogger(ServerEcho.class.getName());
+	private static final int BUFFER_SIZE = 1024;
+	private static final Logger logger = Logger.getLogger(ServerSumBetter.class.getName());
 
 	private final ServerSocketChannel serverSocketChannel;
 	private final Selector selector;
 
-	public ServerEcho(int port) throws IOException {
+	public ServerSumBetter(int port) throws IOException {
 		serverSocketChannel = ServerSocketChannel.open();
 		serverSocketChannel.bind(new InetSocketAddress(port));
 		selector = Selector.open();
@@ -140,9 +161,21 @@ public class ServerEcho {
 		}
 	}
 
+	private void doAccept(SelectionKey key) throws IOException {
+		// TODO
+		ServerSocketChannel ssc = (ServerSocketChannel) key.channel();
+		SocketChannel sc = ssc.accept();
+		if(sc == null) {
+			logger.info("selector gave bad hint");
+			return;
+		}
+		sc.configureBlocking(false);
+		var newKey = sc.register(selector, SelectionKey.OP_READ);
+		newKey.attach(new Context(newKey));
+	}
 
 	private void silentlyClose(SelectionKey key) {
-		var sc = (Channel) key.channel();
+		Channel sc = (Channel) key.channel();
 		try {
 			sc.close();
 		} catch (IOException e) {
@@ -150,28 +183,15 @@ public class ServerEcho {
 		}
 	}
 
-	private void doAccept(SelectionKey key) throws IOException {
-		// TODO
-		ServerSocketChannel ssc = (ServerSocketChannel) key.channel();
-		SocketChannel sc = ssc.accept();
-		if(sc == null) {
-			logger.info("Selector gave bad hint");
-			return;
-		}
-		sc.configureBlocking(false);
-		var newKey = sc.register(selector,SelectionKey.OP_READ);
-		newKey.attach(new Context(newKey));
-	}
-	
 	public static void main(String[] args) throws NumberFormatException, IOException {
 		if (args.length != 1) {
 			usage();
 			return;
 		}
-		new ServerEcho(Integer.parseInt(args[0])).launch();
+		new ServerSumBetter(Integer.parseInt(args[0])).launch();
 	}
 
 	private static void usage() {
-		System.out.println("Usage : ServerEcho port");
+		System.out.println("Usage : ServerSumBetter port");
 	}
 }
