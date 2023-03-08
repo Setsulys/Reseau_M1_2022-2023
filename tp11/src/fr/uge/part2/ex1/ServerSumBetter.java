@@ -113,7 +113,6 @@ public class ServerSumBetter {
 			bufferOut.flip();
 			sc.write(bufferOut);
 			bufferOut.compact();
-
 			updateInterestOps();
 		}
 

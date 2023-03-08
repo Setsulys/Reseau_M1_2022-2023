@@ -35,7 +35,15 @@ public class ServerChatInt {
 		 */
 		private void processIn() {
 			// TODO
-
+			bufferIn.flip();
+			try {
+				while(bufferIn.remaining() >= Integer.BYTES && bufferOut.remaining()>= Integer.BYTES) {
+					var msg = bufferIn.getInt();
+					server.broadcast(msg);
+				}
+			}finally {
+				bufferIn.compact();
+			}
 		}
 
 		/**
@@ -85,10 +93,10 @@ public class ServerChatInt {
 			if(bufferIn.hasRemaining() && !closed) {
 				interestOps |= SelectionKey.OP_READ;
 			}
-			if(bufferOut.position() == 0) {
+			if(bufferOut.position() != 0) {
 				interestOps |= SelectionKey.OP_WRITE;
 			}
-			if(interestOps==0) {
+			if(interestOps==0 && closed) {
 				silentlyClose();
 				return;
 			}
@@ -115,15 +123,13 @@ public class ServerChatInt {
 			// TODO
 			if(sc.read(bufferIn)==-1) {
 				logger.info("not readfull");
-				silentlyClose();
 				closed = true;
-				return;
 			}
 			if(bufferIn.hasRemaining()) {
 				logger.info("remain place in buffer");
-				return;
 			}
 			processIn();
+			updateInterestOps();
 		}
 
 		/**
@@ -225,7 +231,7 @@ public class ServerChatInt {
 		// TODO
 		for(var key : selector.keys()) {
 			var context = (Context) key.attachment();
-			if(context == null) {
+			if(context != null) {
 				context.queueMessage(msg);
 			}
 		}
